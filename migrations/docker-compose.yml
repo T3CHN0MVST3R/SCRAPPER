@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres
+    container_name: scraper-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: scraper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scraper-network
+
+  migrator:
+    build: .
+    container_name: scraper-migrator
+    depends_on:
+      - db
+    environment:
+      DB_DSN: "postgres://postgres:postgres@db:5432/scraper?sslmode=disable"
+      MIGRATE_DIR: "/app/migrate"
+    networks:
+      - scraper-network
+    restart: on-failure
+
+volumes:
+  postgres_data:
+
+networks:
+  scraper-network:
+    driver: bridge

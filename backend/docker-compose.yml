@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: website-scraper-app
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=scraper
+      - DB_SSLMODE=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      - migrator
+    networks:
+      - scraper-network
+
+  postgres:
+    image: postgres
+    container_name: website-scraper-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=scraper
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scraper-network
+
+  migrator:
+    build:
+      context: ../migrations
+      dockerfile: Dockerfile
+    container_name: website-scraper-migrator
+    depends_on:
+      - postgres
+    environment:
+      DB_DSN: "postgres://postgres:postgres@postgres:5432/scraper?sslmode=disable"
+      MIGRATE_DIR: "/app/migrate"
+    networks:
+      - scraper-network
+    restart: on-failure
+
+volumes:
+  postgres_data:
+
+networks:
+  scraper-network:
+    driver: bridge
