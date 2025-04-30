@@ -7,6 +7,8 @@ import (
 	"github.com/jung-kurt/gofpdf"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"github.com/xuri/excelize/v2"
+	"time"
 )
 
 // downloaderService реализация DownloaderService
@@ -119,6 +121,49 @@ func (s *downloaderService) generatePDF(result *dto.GetOperationResultResponse) 
 
 	filename := fmt.Sprintf("operation_%s.pdf", result.Operation.ID)
 	return buf.Bytes(), filename, nil
+}
+
+// generateExcel создает Excel-документ с результатами
+func (s *downloaderService) generateExcel(result *dto.GetOperationResultResponse) ([]byte, string, error) {
+    f := excelize.NewFile()
+
+    // Настраиваем первый лист (информация об операции)
+    f.SetCellValue("Sheet1", "A1", "Operation Information")
+    f.SetCellValue("Sheet1", "A2", "ID")
+    f.SetCellValue("Sheet1", "B2", result.Operation.ID.String())
+    f.SetCellValue("Sheet1", "A3", "URL")
+    f.SetCellValue("Sheet1", "B3", result.Operation.URL)
+    f.SetCellValue("Sheet1", "A4", "Status")
+    f.SetCellValue("Sheet1", "B4", result.Operation.Status)
+    f.SetCellValue("Sheet1", "A5", "Created At")
+    f.SetCellValue("Sheet1", "B5", result.Operation.CreatedAt.Format(time.RFC3339))
+
+    // Создаем лист для блоков
+    f.NewSheet("Blocks")
+    f.SetCellValue("Blocks", "A1", "ID")
+    f.SetCellValue("Blocks", "B1", "Type")
+    f.SetCellValue("Blocks", "C1", "Platform")
+    f.SetCellValue("Blocks", "D1", "Created At")
+    f.SetCellValue("Blocks", "E1", "HTML Content")
+
+    // Заполняем данные блоков
+    for i, block := range result.Blocks {
+        row := i + 2
+        f.SetCellValue("Blocks", fmt.Sprintf("A%d", row), block.ID.String())
+        f.SetCellValue("Blocks", fmt.Sprintf("B%d", row), block.BlockType)
+        f.SetCellValue("Blocks", fmt.Sprintf("C%d", row), block.Platform)
+        f.SetCellValue("Blocks", fmt.Sprintf("D%d", row), block.CreatedAt.Format(time.RFC3339))
+        f.SetCellValue("Blocks", fmt.Sprintf("E%d", row), block.HTML)
+    }
+
+    // Используем буферизированный вывод
+    var buf bytes.Buffer
+    if err := f.Write(&buf); err != nil {
+        return nil, "", fmt.Errorf("failed to write Excel file: %w", err)
+    }
+
+    filename := fmt.Sprintf("operation_%s.xlsx", result.Operation.ID)
+    return buf.Bytes(), filename, nil
 }
 
 func (s *downloaderService) generateText(result *dto.GetOperationResultResponse) ([]byte, string, error) {
