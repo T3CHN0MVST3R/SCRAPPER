@@ -1,0 +1,16 @@
+# IDE
+.idea/
+.vscode/
+
+# Build
+bin/
+tmp/
+
+# Dependencies
+vendor/
+
+# Logs
+*.log
+
+# Environment
+.env
