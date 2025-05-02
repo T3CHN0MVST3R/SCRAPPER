@@ -20,8 +20,9 @@ const (
 type BlockType string
 
 const (
-	BlockTypeHeader BlockType = "header"
-	BlockTypeFooter BlockType = "footer"
+	BlockTypeHeader  BlockType = "header"
+	BlockTypeFooter  BlockType = "footer"
+	BlockTypeContent BlockType = "content"
 )
 
 // Platform представляет платформу сайта
@@ -53,6 +54,11 @@ type Block struct {
 	Content     interface{} `json:"content"`
 	HTML        string      `json:"html"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type BlockTemplate struct {
+	BlockType string `json:"block_type"`
+	HTMLTags  []byte `json:"html"`
 }
 
 // ParseURLRequest представляет запрос на парсинг URL

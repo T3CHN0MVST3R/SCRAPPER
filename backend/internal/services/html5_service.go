@@ -1,7 +1,14 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"scrapper/internal/dto"
+	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
 )
 
 // html5Service реализация HTML5Service
@@ -15,132 +22,175 @@ func NewHTML5Service() HTML5Service {
 
 // DetectPlatform проверяет, соответствует ли страница HTML5
 func (s *html5Service) DetectPlatform(html string) bool {
-	// TODO: Реализовать определение платформы HTML5.
-	// Алгоритм:
-	// 1. Проверить, что страница не соответствует другим CMS (WordPress, Tilda, Bitrix)
-	// 2. Проверить наличие характерных признаков HTML5
-	// 3. Вернуть true, если найдены признаки HTML5 и не найдены признаки других CMS
-	//
-	// Примеры признаков HTML5:
-	// - DOCTYPE HTML (без указания версии)
-	// - Использование семантических тегов HTML5 (header, footer, nav, section, article)
-	// - Отсутствие признаков других CMS
-	//
-	// Пример кода:
-	// // Проверяем DOCTYPE HTML5
-	// if strings.Contains(html, "<!DOCTYPE html>") {
-	//     // Проверяем наличие семантических тегов HTML5
-	//     html5Tags := []string{
-	//         "<header",
-	//         "<footer",
-	//         "<nav",
-	//         "<section",
-	//         "<article",
-	//         "<aside",
-	//         "<main",
-	//     }
-	//
-	//     tagCount := 0
-	//     for _, tag := range html5Tags {
-	//         if strings.Contains(html, tag) {
-	//             tagCount++
-	//         }
-	//     }
-	//
-	//     // Если найдено как минимум 2 семантических тега и нет признаков других CMS
-	//     if tagCount >= 2 {
-	//         return true
-	//     }
-	// }
-	//
-	// return false
+	// Проверяем наличие характерных признаков WordPress
+	htmlPatterns := []string{
+		`<!DOCTYPE html>`,
+		`<meta charset="UTF-8">`,
+		`<html lang`,
+	}
 
-	panic("implement me: разработайте алгоритм определения HTML5 платформы")
+	for _, pattern := range htmlPatterns {
+		if strings.Contains(html, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
-// ParseHeader парсит шапку сайта HTML5
+// ParseHeader парсит шапку сайта Tilda
 func (s *html5Service) ParseHeader(html string) (*dto.Block, error) {
-	// TODO: Реализовать парсинг шапки HTML5 сайта.
-	// Алгоритм:
-	// 1. Найти шапку сайта в HTML с помощью регулярных выражений (тег <header> или div с классом/id header)
-	// 2. Найти и извлечь отдельные компоненты шапки:
-	//    - Логотип (обычно первое изображение или первая ссылка с изображением)
-	//    - Меню навигации (тег <nav> или ul/ol с классом menu/nav)
-	//    - Контактная информация (если есть)
-	//    - Поиск (если есть, обычно форма с input type="search")
-	// 3. Сформировать структуру данных с извлеченными компонентами
-	// 4. Вернуть блок с найденными данными
-	//
-	// Особенности HTML5:
-	// - В HTML5 часто используются семантические теги <header>, <nav>, <main>
-	// - Логотип обычно первое изображение в шапке или изображение в первой ссылке
-	// - Навигация обычно в теге <nav> или в списке <ul> с соответствующим классом
-	// - Поиск может быть в форме с атрибутом role="search" или input с type="search"
-	//
-	// Пример поиска шапки:
-	// reHeader := regexp.MustCompile(`(?s)<header.*?>(.*?)</header>`)
-	// headerMatch := reHeader.FindStringSubmatch(html)
-	//
-	// if len(headerMatch) < 2 {
-	//     // Поиск альтернативных вариантов шапки
-	//     reHeaderClass := regexp.MustCompile(`(?s)<div\s+(?:class=".*?header.*?".*?|id=".*?header.*?".*?)>(.*?)</div>`)
-	//     headerMatch = reHeaderClass.FindStringSubmatch(html)
-	// }
-	//
-	// if len(headerMatch) < 2 {
-	//     // Пробуем найти первый div после body
-	//     reFirstDiv := regexp.MustCompile(`(?s)<body.*?>(.*?)<div.*?>(.*?)</div>`)
-	//     headerMatch = reFirstDiv.FindStringSubmatch(html)
-	// }
-	//
-	// // Обработка найденной шапки...
-	//
-	// Важно: HTML5 сайты могут сильно отличаться друг от друга, так как нет стандартных шаблонов как в CMS.
-	// Поэтому нужно искать по общим семантическим признакам.
-
-	panic("implement me: разработайте алгоритм парсинга шапки HTML5 сайта")
+	panic("implement me")
 }
 
-// ParseFooter парсит подвал сайта HTML5
+// ParseFooter парсит подвал сайта Tilda
 func (s *html5Service) ParseFooter(html string) (*dto.Block, error) {
-	// TODO: Реализовать парсинг подвала HTML5 сайта.
-	// Алгоритм:
-	// 1. Найти подвал сайта в HTML с помощью регулярных выражений (тег <footer> или div с классом/id footer)
-	// 2. Найти и извлечь отдельные компоненты подвала:
-	//    - Копирайт (обычно содержит символы © или текст "copyright")
-	//    - Социальные сети (ссылки на социальные сети или иконки)
-	//    - Ссылки навигации в подвале (меню подвала)
-	//    - Контактная информация (адрес, телефон, email)
-	// 3. Сформировать структуру данных с извлеченными компонентами
-	// 4. Вернуть блок с найденными данными
-	//
-	// Особенности HTML5:
-	// - В HTML5 подвал обычно представлен тегом <footer>
-	// - Копирайт часто содержит символы © или &copy; и год
-	// - Социальные сети часто представлены как список ссылок с иконками или названиями соцсетей
-	// - Контактная информация может быть отмечена семантическими тегами <address>
-	//
-	// Пример поиска подвала:
-	// reFooter := regexp.MustCompile(`(?s)<footer.*?>(.*?)</footer>`)
-	// footerMatch := reFooter.FindStringSubmatch(html)
-	//
-	// if len(footerMatch) < 2 {
-	//     // Поиск альтернативных вариантов подвала
-	//     reFooterClass := regexp.MustCompile(`(?s)<div\s+(?:class=".*?footer.*?".*?|id=".*?footer.*?".*?)>(.*?)</div>`)
-	//     footerMatch = reFooterClass.FindStringSubmatch(html)
-	// }
-	//
-	// if len(footerMatch) < 2 {
-	//     // Пробуем найти последний div перед закрывающим body
-	//     reLastDiv := regexp.MustCompile(`(?s)<div.*?>(.*?)</div>.*?</body>`)
-	//     footerMatch = reLastDiv.FindStringSubmatch(html)
-	// }
-	//
-	// // Обработка найденного подвала...
-	//
-	// Важно: В HTML5 подвал может быть разделен на несколько секций или содержать
-	// вложенные элементы с различной информацией. Необходимо анализировать и извлекать
-	// все значимые компоненты.
+	panic("implement me")
+}
 
-	panic("implement me: разработайте алгоритм парсинга подвала HTML5 сайта")
+func (s *html5Service) ParseAndClassifyPage(html string, templates []dto.BlockTemplate) ([]*dto.Block, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		return nil, err
+	}
+
+	var blocks []*dto.Block
+
+	// Найти header
+	header := doc.Find("header").First()
+	if header.Length() != 0 {
+		blocks = append(blocks, &dto.Block{
+			BlockType: dto.BlockTypeHeader,
+			Platform:  dto.PlatformHTML5,
+			Content: map[string]string{
+				"template_name": "Шапка",
+			},
+			HTML: "",
+		})
+	}
+	// Идем сверху вниз по логике документа
+	for sibling := header.Next(); sibling.Length() > 0; sibling = sibling.Next() {
+		node := sibling.Get(0)
+		if node.Data == "footer" {
+			blocks = append(blocks, &dto.Block{
+				BlockType: dto.BlockTypeFooter,
+				Platform:  dto.PlatformHTML5,
+				Content: map[string]string{
+					"template_name": "Футер",
+				},
+				HTML: "",
+			})
+			break // Достигли footer — останавливаемся
+		}
+		if node.Data == "section" || node.Data == "div" {
+			var out bytes.Buffer
+			walkVisible(sibling, &out)
+
+			htmlContent := out.String()
+			//htmlContent := out.String()
+
+			matchedTemplate := matchBlock(htmlContent, templates)
+			blockType := dto.BlockTypeContent // по умолчанию
+
+			content := map[string]interface{}{}
+			if matchedTemplate != nil {
+				content["template_name"] = matchedTemplate.BlockType
+			}
+
+			blocks = append(blocks, &dto.Block{
+				BlockType: blockType,
+				Platform:  dto.PlatformHTML5,
+				Content:   content,
+				HTML:      "",
+			})
+		}
+	}
+
+	return blocks, nil
+}
+
+func matchBlock(html string, templates []dto.BlockTemplate) *dto.BlockTemplate {
+	for _, template := range templates {
+		var tagSequence map[string]interface{}
+		if err := json.Unmarshal([]byte(template.HTMLTags), &tagSequence); err != nil {
+			continue
+		}
+
+		matched := true
+
+		for i := 1; ; i++ {
+			key := fmt.Sprintf("step%d", i)
+			raw, ok := tagSequence[key]
+			if !ok {
+				break
+			}
+
+			switch val := raw.(type) {
+			case string:
+				// Поддержка "ИЛИ"
+				if strings.Contains(val, "|") {
+					found := false
+					for _, option := range strings.Split(val, "|") {
+						if strings.Contains(html, option) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						matched = false
+						break
+					}
+				} else {
+					if !strings.Contains(html, val) {
+						matched = false
+						break
+					}
+				}
+			case []interface{}:
+				found := false
+				for _, item := range val {
+					if tag, ok := item.(string); ok && strings.Contains(html, tag) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					matched = false
+					break
+				}
+			}
+		}
+
+		if matched {
+			return &template
+		}
+	}
+
+	return nil
+}
+
+// Обходит DOM, собирает HTML без скрытых элементов
+func walkVisible(sel *goquery.Selection, buf *bytes.Buffer) {
+
+	sel.Find("div").Each(func(i int, s *goquery.Selection) {
+		// Пропускаем скрытые элементы и их родителей
+		if isHidden(s) {
+			s.Remove()
+		}
+	})
+
+	html.Render(buf, sel.Get(0))
+
+}
+
+func isHidden(sel *goquery.Selection) bool {
+	//html, _ := sel.Html()
+	html, _ := sel.Html()
+	if strings.Contains(html, "visibility:hidden") || strings.Contains(html, "visibility: hidden") {
+		return true
+	}
+
+	// Проверка родителей
+	hidden := false
+	return hidden
 }

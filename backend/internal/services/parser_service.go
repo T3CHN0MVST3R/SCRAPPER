@@ -3,10 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"time"
 
+	"github.com/chromedp/chromedp"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"go.uber.org/zap"
@@ -65,42 +64,36 @@ func (s *parserService) ParseURL(ctx context.Context, url string) (uuid.UUID, er
 		// Создаем новый контекст для горутины
 		goCtx := context.Background()
 
-		// Загружаем HTML-страницу
-		client := &http.Client{
-			Timeout: 30 * time.Second,
-		}
+		opts := append(chromedp.DefaultExecAllocatorOptions[:],
+			chromedp.ExecPath("C:/Program Files/Google/Chrome/Application/chrome.exe"), // путь к Chrome
+			chromedp.Flag("headless", true),
+			chromedp.Flag("disable-gpu", true),
+		)
 
-		req, err := http.NewRequest("GET", url, nil)
+		allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+		defer cancel()
+
+		// Создаем контекст с таймаутом
+		ctx, cancel := chromedp.NewContext(allocCtx)
+		defer cancel()
+
+		// Устанавливаем общий таймаут на выполнение
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
+		var html string
+
+		// Навигация и извлечение outer HTML
+		err := chromedp.Run(ctx,
+			chromedp.Navigate(url),
+			chromedp.Sleep(2*time.Second), // дать JS отработать
+			chromedp.OuterHTML("html", &html),
+		)
+
 		if err != nil {
-			s.logger.Error("Failed to create request", zap.Error(err))
+			s.logger.Error("Failed to render page with chromedp", zap.Error(err))
 			s.repo.UpdateOperationStatus(goCtx, operationID, dto.StatusError)
-			return
 		}
-
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			s.logger.Error("Failed to load page", zap.Error(err))
-			s.repo.UpdateOperationStatus(goCtx, operationID, dto.StatusError)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			s.logger.Error("Failed to load page", zap.Int("status_code", resp.StatusCode))
-			s.repo.UpdateOperationStatus(goCtx, operationID, dto.StatusError)
-			return
-		}
-
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			s.logger.Error("Failed to read response body", zap.Error(err))
-			s.repo.UpdateOperationStatus(goCtx, operationID, dto.StatusError)
-			return
-		}
-
-		html := string(bodyBytes)
 
 		// Определяем платформу сайта
 		platform := s.DetectPlatform(html)
@@ -140,14 +133,27 @@ func (s *parserService) ParseURL(ctx context.Context, url string) (uuid.UUID, er
 				s.logger.Error("Failed to parse Bitrix footer", zap.Error(err))
 			}
 		case dto.PlatformHTML5:
-			headerBlock, err = s.html5Service.ParseHeader(html)
+			var blocks []*dto.Block
+			templates, err := s.repo.GetAllTemplates(platform)
 			if err != nil {
-				s.logger.Error("Failed to parse HTML5 header", zap.Error(err))
+				s.logger.Error("Failed to load templates:", zap.Error(err))
 			}
 
-			footerBlock, err = s.html5Service.ParseFooter(html)
+			blocks, err = s.html5Service.ParseAndClassifyPage(html, templates)
 			if err != nil {
-				s.logger.Error("Failed to parse HTML5 footer", zap.Error(err))
+				s.logger.Error("Failed to parse HTML5 content", zap.Error(err))
+			}
+
+			// Сохраняем найденные блоки в БД
+			for _, block := range blocks {
+				if block != nil {
+					block.OperationID = operationID
+
+					err = s.repo.SaveBlock(goCtx, block)
+					if err != nil {
+						s.logger.Error("Failed to save block", zap.Error(err), zap.Any("block", block))
+					}
+				}
 			}
 		}
 
@@ -292,6 +298,11 @@ func (s *parserService) ExportOperation(ctx context.Context, operationID uuid.UU
 
 // DetectPlatform определяет платформу сайта по HTML
 func (s *parserService) DetectPlatform(html string) dto.Platform {
+
+	if s.html5Service.DetectPlatform(html) {
+		return dto.PlatformHTML5
+	}
+
 	if s.wordpressService.DetectPlatform(html) {
 		return dto.PlatformWordPress
 	}
@@ -302,10 +313,6 @@ func (s *parserService) DetectPlatform(html string) dto.Platform {
 
 	if s.bitrixService.DetectPlatform(html) {
 		return dto.PlatformBitrix
-	}
-
-	if s.html5Service.DetectPlatform(html) {
-		return dto.PlatformHTML5
 	}
 
 	return dto.PlatformUnknown

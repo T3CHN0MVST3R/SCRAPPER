@@ -176,3 +176,39 @@ func (r *PostgresRepo) GetBlocksByOperationID(ctx context.Context, operationID u
 
 	return blocks, nil
 }
+
+// GetAllTemplates получает все HTML теги для парсера блоков страницы
+func (r *PostgresRepo) GetAllTemplates(platform dto.Platform) ([]dto.BlockTemplate, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	switch platform {
+	case dto.PlatformWordPress:
+		rows, err = r.db.Query("SELECT block_type, wordpress FROM block_templates ORDER BY (wordpress ->>'priority')::int")
+	case dto.PlatformTilda:
+		rows, err = r.db.Query("SELECT block_type, tilda FROM block_templates ORDER BY (tilda ->>'priority')::int")
+	case dto.PlatformBitrix:
+		rows, err = r.db.Query("SELECT block_type, bitrix FROM block_templates ORDER BY (bitrix ->>'priority')::int")
+	case dto.PlatformHTML5:
+		rows, err = r.db.Query("SELECT block_type, html5 FROM block_templates ORDER BY (html5 ->>'priority')::int")
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var templates []dto.BlockTemplate
+
+	for rows.Next() {
+		var tmpl dto.BlockTemplate
+		if err := rows.Scan(&tmpl.BlockType, &tmpl.HTMLTags); err != nil {
+			return nil, fmt.Errorf("Error scanning block template: %w", err)
+		}
+		templates = append(templates, tmpl)
+	}
+
+	return templates, nil
+}

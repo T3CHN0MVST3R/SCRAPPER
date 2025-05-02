@@ -24,4 +24,7 @@ type ParserRepo interface {
 
 	// GetBlocksByOperationID получает все блоки по ID операции
 	GetBlocksByOperationID(ctx context.Context, operationID uuid.UUID) ([]dto.Block, error)
+
+	//GetAllTemplates получает все HTML теги для парсера блоков страницы
+	GetAllTemplates(platform dto.Platform) ([]dto.BlockTemplate, error)
 }

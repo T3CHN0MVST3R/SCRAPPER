@@ -53,6 +53,7 @@ type BitrixService interface {
 // HTML5Service представляет интерфейс для сервиса HTML5
 type HTML5Service interface {
 	PlatformService
+	ParseAndClassifyPage(html string, templates []dto.BlockTemplate) ([]*dto.Block, error)
 }
 
 // DownloaderService представляет интерфейс для сервиса загрузки файлов
